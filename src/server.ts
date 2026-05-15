@@ -16,6 +16,12 @@ import {
 import studentRoutes from './students/student.route.js';
 import dailyRouter from './daily-logs/daily-logs.route.js';
 import attendancerouter from './attendance/attendance.route.js';
+import FileRouter from './files/files.route.js';
+import EvaluationRouter from './evaluation/evaluation.route.js';
+import companyRouter from './company/company.route.js';
+
+
+
 const app = express();
 
 
@@ -53,6 +59,18 @@ app.use("/api/auth", authRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/daily-logs", dailyRouter);
 app.use("/api/attendance", attendancerouter);
+app.use("/api/evaluations", EvaluationRouter);
+app.use("/api/attachments", attendancerouter);
+app.use ("/api/notifications", attendancerouter);
+app.use("/api/reports", attendancerouter);
+app.use("/api/company", companyRouter);
+
+
+app.use("/api/files", FileRouter);
+
+
+
+
 
 
 

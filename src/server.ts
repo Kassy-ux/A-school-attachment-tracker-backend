@@ -13,6 +13,9 @@ import {
   errorMiddleware,
   notFoundMiddleware,
 } from "./middleware/error.middleware.js";
+import studentRoutes from './students/student.route.js';
+import dailyRouter from './daily-logs/daily-logs.route.js';
+import attendancerouter from './attendance/attendance.route.js';
 const app = express();
 
 
@@ -24,8 +27,8 @@ app.use(helmet());
  
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5000",
-    credentials: true,
+    origin: "*",
+    credentials: false,
   })
 );
  
@@ -47,6 +50,10 @@ app.get("/", (_req, res) => {
 
 //api routes
 app.use("/api/auth", authRoutes);
+app.use("/api/students", studentRoutes);
+app.use("/api/daily-logs", dailyRouter);
+app.use("/api/attendance", attendancerouter);
+
 
 
 

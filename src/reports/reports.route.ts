@@ -1,0 +1,15 @@
+
+import { Router } from "express";
+import { protect, studentOnly, supervisorOrAdmin } from "../middleware/auth.middleware.js";
+import { createReport, getMyReports, getReportById, getStudentReports, reviewReport } from "./report.controller.js";
+
+const router = Router();
+router.use(protect);
+
+router.post("/", studentOnly, createReport);
+router.get("/", studentOnly, getMyReports);
+router.get("/:id", getReportById);
+router.get("/student/:studentId", supervisorOrAdmin, getStudentReports);
+router.patch("/:id/review", supervisorOrAdmin, reviewReport);
+
+export default router;

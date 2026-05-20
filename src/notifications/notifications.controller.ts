@@ -3,7 +3,7 @@
 import { Response } from "express";
 import { AuthRequest } from "../common/types.js";
 import { getMyNotificationsService, markAsReadService, markAllAsReadService } from "./notifications.service.js";
-
+// controller handlers only — avoid module-level service calls with undefined vars
 export const getMyNotifications = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { page, limit } = req.query as Record<string, string>;

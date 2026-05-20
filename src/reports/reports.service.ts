@@ -3,6 +3,9 @@ import { eq, and, desc, count } from "drizzle-orm";
 import  db  from "../drizzle/db.js";
 import { reports } from "../drizzle/schema.js";
 import { parsePagination, buildPagination } from "../common/types.js";
+import { createNotificationService } from "../notifications/notifications.service.js";
+
+
 
 export interface CreateReportDto {
   weekNumber: number;

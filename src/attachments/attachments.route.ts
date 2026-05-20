@@ -55,6 +55,6 @@ attachmentRouter.post(
 );
 
 // Admin — end attachment
-router.patch("/:id/end", adminOnly, endAttachment);
+attachmentRouter.patch("/:id/end", adminOnly, endAttachment);
 
-export default router;
+export default attachmentRouter;

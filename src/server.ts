@@ -19,6 +19,9 @@ import attendancerouter from './attendance/attendance.route.js';
 import FileRouter from './files/files.route.js';
 import EvaluationRouter from './evaluation/evaluation.route.js';
 import companyRouter from './company/company.route.js';
+import attachmentRouter from './attachments/attachments.route.js';
+import notificationRouter from './notifications/notifications.route.js';
+import reportRouter from './reports/reports.route.js';
 
 
 
@@ -60,10 +63,11 @@ app.use("/api/students", studentRoutes);
 app.use("/api/daily-logs", dailyRouter);
 app.use("/api/attendance", attendancerouter);
 app.use("/api/evaluations", EvaluationRouter);
-app.use("/api/attachments", attendancerouter);
-app.use ("/api/notifications", attendancerouter);
-app.use("/api/reports", attendancerouter);
+app.use("/api/attachments", attachmentRouter);
+app.use ("/api/notifications", notificationRouter);
+app.use("/api/reports", reportRouter);
 app.use("/api/company", companyRouter);
+app.use("/api/files", FileRouter);
 
 
 app.use("/api/files", FileRouter);

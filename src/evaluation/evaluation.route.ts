@@ -39,21 +39,21 @@ const scoreRule = (field: string) =>
     .isInt({ min: 1, max: 10 })
     .withMessage(`${field} must be between 1 and 10`);
 
-router.use(protect);
+EvaluationRouter.use(protect);
 
 // Student routes
-router.get("/me",       studentOnly, getMyEvaluations);
-router.get("/me/score", studentOnly, getMyScore);
+EvaluationRouter.get("/me",       studentOnly, getMyEvaluations);
+EvaluationRouter.get("/me/score", studentOnly, getMyScore);
 
 // Admin — all evaluations
-router.get("/", adminOnly, getAllEvaluations);
+EvaluationRouter.get("/", adminOnly, getAllEvaluations);
 
 // Supervisor / Admin — view by student or by id
-router.get("/student/:studentId", supervisorOrAdmin, getStudentEvaluations);
-router.get("/:id",                supervisorOrAdmin, getEvaluationById);
+EvaluationRouter.get("/student/:studentId", supervisorOrAdmin, getStudentEvaluations);
+EvaluationRouter.get("/:id",                supervisorOrAdmin, getEvaluationById);
 
 // Supervisor — create
-router.post(
+EvaluationRouter.post(
   "/",
   supervisorOnly,
   [
@@ -70,7 +70,7 @@ router.post(
 );
 
 // Supervisor — update own
-router.patch(
+EvaluationRouter.patch(
   "/:id",
   supervisorOnly,
   [

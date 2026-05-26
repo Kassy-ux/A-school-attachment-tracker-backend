@@ -42,8 +42,8 @@ companyRouter.post(
 );
 
 // Supervisor / Admin: read
-companyRouter.get("/",    supervisorOrAdmin, getAllCompanies);
-companyRouter.get("/:id", supervisorOrAdmin, getCompanyById);
+companyRouter.get("/",     getAllCompanies);
+companyRouter.get("/:id", getCompanyById);
 
 // Admin: update / delete
 companyRouter.patch("/:id",  adminOnly, updateCompany);

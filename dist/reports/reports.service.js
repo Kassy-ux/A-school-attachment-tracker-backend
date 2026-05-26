@@ -1,6 +1,6 @@
 import { eq, and, desc, count } from "drizzle-orm";
 import db from "../drizzle/db.js";
-import { reports } from "../drizzle/schema.js";
+import { reports, students } from "../drizzle/schema.js";
 import { parsePagination, buildPagination } from "../common/types.js";
 // CREATE
 export const createReportService = async (studentId, dto) => {
@@ -32,24 +32,44 @@ export const getMyReportsService = async (studentId, rawPage, rawLimit) => {
     return { data: rows, pagination: buildPagination(Number(totalRow.total), page, limit) };
 };
 // GET SINGLE REPORT
-export const getReportByIdService = async (reportId, studentId) => {
-    const whereClause = studentId
-        ? and(eq(reports.id, reportId), eq(reports.studentId, studentId))
-        : eq(reports.id, reportId);
-    const result = await db.select().from(reports).where(whereClause).limit(1);
+export const getReportByIdService = async (reportId, studentId, supervisorId) => {
+    const whereClause = and(eq(reports.id, reportId), ...(studentId ? [eq(reports.studentId, studentId)] : []), ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : []));
+    const result = await db
+        .select()
+        .from(reports)
+        .innerJoin(students, eq(students.id, reports.studentId))
+        .where(whereClause)
+        .limit(1);
     if (result.length === 0)
         throw { statusCode: 404, message: "Report not found." };
-    return result[0];
+    return result[0].reports;
 };
 // SUPERVISOR: GET STUDENT REPORTS
-export const getStudentReportsService = async (studentId, rawPage, rawLimit) => {
+export const getStudentReportsService = async (studentId, rawPage, rawLimit, supervisorId) => {
     const { page, limit, offset } = parsePagination(rawPage, rawLimit);
-    const rows = await db.select().from(reports).where(eq(reports.studentId, studentId)).orderBy(desc(reports.weekNumber)).limit(limit).offset(offset);
-    const [totalRow] = await db.select({ total: count() }).from(reports).where(eq(reports.studentId, studentId));
-    return { data: rows, pagination: buildPagination(Number(totalRow.total), page, limit) };
+    const whereClause = and(eq(reports.studentId, studentId), ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : []));
+    const rows = await db
+        .select()
+        .from(reports)
+        .innerJoin(students, eq(students.id, reports.studentId))
+        .where(whereClause)
+        .orderBy(desc(reports.weekNumber))
+        .limit(limit)
+        .offset(offset);
+    const [totalRow] = await db
+        .select({ total: count() })
+        .from(reports)
+        .innerJoin(students, eq(students.id, reports.studentId))
+        .where(whereClause);
+    return { data: rows.map((row) => row.reports), pagination: buildPagination(Number(totalRow.total), page, limit) };
 };
-export const reviewReportService = async (reportId, dto) => {
-    const result = await db.select({ id: reports.id }).from(reports).where(eq(reports.id, reportId)).limit(1);
+export const reviewReportService = async (reportId, dto, supervisorId) => {
+    const result = await db
+        .select({ id: reports.id })
+        .from(reports)
+        .innerJoin(students, eq(students.id, reports.studentId))
+        .where(and(eq(reports.id, reportId), ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : [])))
+        .limit(1);
     if (result.length === 0)
         throw { statusCode: 404, message: "Report not found." };
     const [updated] = await db

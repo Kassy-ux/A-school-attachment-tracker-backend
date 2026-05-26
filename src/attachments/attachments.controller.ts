@@ -10,11 +10,11 @@ import {
   endAttachmentService,
 } from "./attachments.service.js";
 
-// POST /api/attachments  (admin / supervisor)
+// POST /api/attachments  (admin)
 export const assignAttachment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const data = await assignAttachmentService(req.user!.userId, req.body);
-    res.status(201).json({ success: true, message: "Student assigned to company.", data });
+    await assignAttachmentService(req.user!.userId, req.body);
+    res.status(201).json({ success: true, message: "Supervisor assigned successfully" });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });
   }
@@ -25,7 +25,8 @@ export const getAllAttachments = async (req: AuthRequest, res: Response): Promis
   try {
     const result = await getAllAttachmentsService(
       req.query.page as string | undefined,
-      req.query.limit as string | undefined
+      req.query.limit as string | undefined,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
     );
     res.json({ success: true, message: "Attachments retrieved.", ...result });
   } catch (err: any) {
@@ -47,7 +48,10 @@ export const getMyAttachment = async (req: AuthRequest, res: Response): Promise<
 export const getAttachmentById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
-    const data = await getAttachmentByIdService(id);
+    const data = await getAttachmentByIdService(
+      id,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: "Attachment retrieved.", data });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });

@@ -26,7 +26,11 @@ export const getReportById = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const isStudent = req.user!.role === "student";
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const data = await getReportByIdService(id, isStudent ? req.user!.studentId : undefined);
+    const data = await getReportByIdService(
+      id,
+      isStudent ? req.user!.studentId : undefined,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: "Report retrieved.", data });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });
@@ -37,7 +41,12 @@ export const getStudentReports = async (req: AuthRequest, res: Response): Promis
   try {
     const { page, limit } = req.query as Record<string, string>;
     const studentId = Array.isArray(req.params.studentId) ? req.params.studentId[0] : req.params.studentId;
-    const result = await getStudentReportsService(studentId, page, limit);
+    const result = await getStudentReportsService(
+      studentId,
+      page,
+      limit,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: "Student reports retrieved.", ...result });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });
@@ -52,11 +61,14 @@ export const reviewReport = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const data = await reviewReportService(id, { status, supervisorComment });
+    const data = await reviewReportService(
+      id,
+      { status, supervisorComment },
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: `Report ${status}.`, data });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });
   }
 }
-
 

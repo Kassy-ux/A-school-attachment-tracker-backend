@@ -45,11 +45,11 @@ export const createEvaluationService = async (
   const studentExists = await db
     .select({ id: students.id })
     .from(students)
-    .where(eq(students.id, dto.studentId))
+    .where(and(eq(students.id, dto.studentId), eq(students.supervisorId, supervisorId)))
     .limit(1);
 
   if (studentExists.length === 0) {
-    throw { statusCode: 404, message: "Student not found." };
+    throw { statusCode: 404, message: "Student not found or not assigned to you." };
   }
 
   // Prevent duplicate evaluation by same supervisor for same student
@@ -91,7 +91,12 @@ export const createEvaluationService = async (
 // ============================================================
 // GET evaluation for a student  (student sees their own / supervisor sees any)
 // ============================================================
-export const getStudentEvaluationsService = async (studentId: string) => {
+export const getStudentEvaluationsService = async (studentId: string, supervisorId?: string) => {
+  const whereClause = and(
+    eq(evaluations.studentId, studentId),
+    ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : [])
+  );
+
   const result = await db
     .select({
       evaluationId:        evaluations.id,
@@ -109,7 +114,8 @@ export const getStudentEvaluationsService = async (studentId: string) => {
     })
     .from(evaluations)
     .innerJoin(users, eq(users.id, evaluations.supervisorId))
-    .where(eq(evaluations.studentId, studentId));
+    .innerJoin(students, eq(students.id, evaluations.studentId))
+    .where(whereClause);
 
   return result;
 };
@@ -157,7 +163,12 @@ export const getAllEvaluationsService = async (
 // ============================================================
 // GET single evaluation by id
 // ============================================================
-export const getEvaluationByIdService = async (evaluationId: string) => {
+export const getEvaluationByIdService = async (evaluationId: string, supervisorId?: string) => {
+  const whereClause = and(
+    eq(evaluations.id, evaluationId),
+    ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : [])
+  );
+
   const result = await db
     .select({
       evaluationId:        evaluations.id,
@@ -177,7 +188,7 @@ export const getEvaluationByIdService = async (evaluationId: string) => {
     .from(evaluations)
     .innerJoin(students, eq(students.id, evaluations.studentId))
     .innerJoin(users,    eq(users.id,    students.userId))
-    .where(eq(evaluations.id, evaluationId))
+    .where(whereClause)
     .limit(1);
 
   if (result.length === 0) {

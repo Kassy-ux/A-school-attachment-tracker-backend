@@ -3,6 +3,7 @@ import db from "../drizzle/db.js";
 import { notifications } from "../drizzle/schema.js";
 import { parsePagination, buildPagination } from "../common/types.js";
 // Create a notification (called internally by other services)
+// notifications.service.js
 export const createNotificationService = async (userId, title, message) => {
     const [notif] = await db
         .insert(notifications)

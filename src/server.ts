@@ -1,5 +1,6 @@
 import express, {  Application , Response} from 'express';
 import dotenv from "dotenv"
+import path from "path";
 
 import cors from "cors";
 import helmet from "helmet";
@@ -22,6 +23,7 @@ import companyRouter from './company/company.route.js';
 import attachmentRouter from './attachments/attachments.route.js';
 import notificationRouter from './notifications/notifications.route.js';
 import reportRouter from './reports/reports.route.js';
+import adminRouter from './admin/admin.route.js';
 
 
 
@@ -43,6 +45,7 @@ app.use(
  
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 //health check
 app.get("/", (_req, res) => {
@@ -68,6 +71,7 @@ app.use ("/api/notifications", notificationRouter);
 app.use("/api/reports", reportRouter);
 app.use("/api/company", companyRouter);
 app.use("/api/files", FileRouter);
+app.use("/api/admin", adminRouter);
 
 
 app.use("/api/files", FileRouter);

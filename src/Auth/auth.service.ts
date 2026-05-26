@@ -125,6 +125,7 @@ export const getMeService = async (userId: string) => {
     department: students.department, school: students.school,
     attachmentStartDate: students.attachmentStartDate,
     attachmentEndDate: students.attachmentEndDate,
+    supervisorId: students.supervisorId,
   }).from(users)
     .leftJoin(students, eq(students.userId, users.id))
     .where(eq(users.id, userId)).limit(1);

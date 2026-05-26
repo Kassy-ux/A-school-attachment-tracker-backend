@@ -11,7 +11,6 @@ import {
   getAttachmentById,
   endAttachment,
 } from "./attachments.controller.js";
-import router from "../reports/reports.route.js";
 
 const attachmentRouter = Router();
 
@@ -40,13 +39,14 @@ attachmentRouter.get("/me", studentOnly, getMyAttachment);
 attachmentRouter.get("/",    supervisorOrAdmin, getAllAttachments);
 attachmentRouter.get("/:id", supervisorOrAdmin, getAttachmentById);
 
-// Admin / Supervisor — assign student to company
+// Admin — assign supervisor to student
 attachmentRouter.post(
   "/",
-  supervisorOrAdmin,
+  adminOnly,
   [
     body("studentId").isUUID().withMessage("Valid student ID required"),
-    body("companyId").isUUID().withMessage("Valid company ID required"),
+    body("supervisorId").isUUID().withMessage("Valid supervisor ID required"),
+    body("companyId").optional().isUUID().withMessage("Valid company ID required"),
     body("startDate").isISO8601().withMessage("Valid start date required (YYYY-MM-DD)"),
     body("endDate").isISO8601().withMessage("Valid end date required (YYYY-MM-DD)"),
   ],

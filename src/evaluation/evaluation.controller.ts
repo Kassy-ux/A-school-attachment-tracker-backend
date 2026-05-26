@@ -57,7 +57,10 @@ export const getMyScore = async (req: AuthRequest, res: Response): Promise<void>
 export const getStudentEvaluations = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const studentId = typeof req.params.studentId === "string" ? req.params.studentId : req.params.studentId[0];
-    const data = await getStudentEvaluationsService(studentId);
+    const data = await getStudentEvaluationsService(
+      studentId,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: "Student evaluations retrieved.", data });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });
@@ -68,7 +71,10 @@ export const getStudentEvaluations = async (req: AuthRequest, res: Response): Pr
 export const getEvaluationById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = typeof req.params.id === "string" ? req.params.id : req.params.id[0];
-    const data = await getEvaluationByIdService(id);
+    const data = await getEvaluationByIdService(
+      id,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: "Evaluation retrieved.", data });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });

@@ -1,4 +1,5 @@
 import { getMyNotificationsService, markAsReadService, markAllAsReadService } from "./notifications.service.js";
+// controller handlers only — avoid module-level service calls with undefined vars
 export const getMyNotifications = async (req, res) => {
     try {
         const { page, limit } = req.query;

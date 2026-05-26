@@ -8,8 +8,8 @@ reportRouter.use(protect);
 
 reportRouter.post("/", studentOnly, createReport);
 reportRouter.get("/", studentOnly, getMyReports);
-reportRouter.get("/:id", getReportById);
 reportRouter.get("/student/:studentId", supervisorOrAdmin, getStudentReports);
+reportRouter.get("/:id", getReportById);
 reportRouter.patch("/:id/review", supervisorOrAdmin, reviewReport);
 
 export default reportRouter;

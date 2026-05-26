@@ -35,7 +35,7 @@ export const getLogStats = async (req, res) => {
 export const getLogById = async (req, res) => {
     try {
         const isStudent = req.user.role === "student";
-        const data = await getLogByIdService(req.params.id, isStudent ? req.user.studentId : undefined);
+        const data = await getLogByIdService(req.params.id, isStudent ? req.user.studentId : undefined, req.user.role === "supervisor" ? req.user.userId : undefined);
         res.json({ success: true, message: "Log retrieved.", data });
     }
     catch (err) {
@@ -66,7 +66,7 @@ export const deleteLog = async (req, res) => {
 export const getStudentLogs = async (req, res) => {
     try {
         const { page, limit } = req.query;
-        const result = await getStudentLogsService(req.params.studentId, page, limit);
+        const result = await getStudentLogsService(req.params.studentId, page, limit, req.user.role === "supervisor" ? req.user.userId : undefined);
         res.json({ success: true, message: "Student logs retrieved.", ...result });
     }
     catch (err) {
@@ -81,7 +81,7 @@ export const reviewLog = async (req, res) => {
             res.status(400).json({ success: false, message: "isApproved must be true or false." });
             return;
         }
-        const data = await reviewLogService(req.params.id, { isApproved, supervisorComment });
+        const data = await reviewLogService(req.params.id, { isApproved, supervisorComment }, req.user.role === "supervisor" ? req.user.userId : undefined);
         res.json({ success: true, message: `Log ${isApproved ? "approved" : "rejected"}.`, data });
     }
     catch (err) {

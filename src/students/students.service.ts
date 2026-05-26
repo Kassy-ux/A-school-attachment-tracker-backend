@@ -1,9 +1,12 @@
 
 
 import { eq, ilike, and, count } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import  db from "../drizzle/db.js";
 import { users, students, companies, attachments } from "../drizzle/schema.js";
 import { parsePagination, buildPagination } from "../common/types.js";
+
+const supervisorUsers = alias(users, "supervisor_users");
 
 // ============================================================
 // GET all students  (supervisor / admin)
@@ -11,13 +14,16 @@ import { parsePagination, buildPagination } from "../common/types.js";
 export const getAllStudentsService = async (
   rawPage?: string,
   rawLimit?: string,
-  search?: string
+  search?: string,
+  supervisorId?: string
 ) => {
   const { page, limit, offset } = parsePagination(rawPage, rawLimit);
 
-  const whereClause = search
-    ? ilike(users.fullName, `%${search}%`)
-    : undefined;
+  const clauses = [
+    ...(search ? [ilike(users.fullName, `%${search}%`)] : []),
+    ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : []),
+  ];
+  const whereClause = clauses.length > 0 ? and(...clauses) : undefined;
 
   const rows = await db
     .select({
@@ -34,6 +40,7 @@ export const getAllStudentsService = async (
       school: students.school,
       attachmentStartDate: students.attachmentStartDate,
       attachmentEndDate: students.attachmentEndDate,
+      supervisorId: students.supervisorId,
     })
     .from(students)
     .innerJoin(users, eq(users.id, students.userId))
@@ -56,7 +63,12 @@ export const getAllStudentsService = async (
 // ============================================================
 // GET single student by studentId
 // ============================================================
-export const getStudentByIdService = async (studentId: string) => {
+export const getStudentByIdService = async (studentId: string, supervisorId?: string) => {
+  const clauses = [
+    eq(students.id, studentId),
+    ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : []),
+  ];
+
   const result = await db
     .select({
       studentId: students.id,
@@ -72,6 +84,9 @@ export const getStudentByIdService = async (studentId: string) => {
       school: students.school,
       attachmentStartDate: students.attachmentStartDate,
       attachmentEndDate: students.attachmentEndDate,
+      supervisorId: students.supervisorId,
+      supervisorName: supervisorUsers.fullName,
+      supervisorEmail: supervisorUsers.email,
       // Company info via attachments join
       companyId: companies.id,
       companyName: companies.companyName,
@@ -88,8 +103,9 @@ export const getStudentByIdService = async (studentId: string) => {
         eq(attachments.status, "ongoing")
       )
     )
+    .leftJoin(supervisorUsers, eq(supervisorUsers.id, students.supervisorId))
     .leftJoin(companies, eq(companies.id, attachments.companyId))
-    .where(eq(students.id, studentId))
+    .where(and(...clauses))
     .limit(1);
 
   if (result.length === 0) {
@@ -117,6 +133,9 @@ export const getMyStudentProfileService = async (userId: string) => {
       school: students.school,
       attachmentStartDate: students.attachmentStartDate,
       attachmentEndDate: students.attachmentEndDate,
+      supervisorId: students.supervisorId,
+      supervisorName: supervisorUsers.fullName,
+      supervisorEmail: supervisorUsers.email,
       companyName: companies.companyName,
       companyCity: companies.city,
       companyIndustry: companies.industry,
@@ -132,6 +151,7 @@ export const getMyStudentProfileService = async (userId: string) => {
         eq(attachments.status, "ongoing")
       )
     )
+    .leftJoin(supervisorUsers, eq(supervisorUsers.id, students.supervisorId))
     .leftJoin(companies, eq(companies.id, attachments.companyId))
     .where(eq(students.userId, userId))
     .limit(1);

@@ -3,7 +3,7 @@ import { body } from "express-validator";
 import { validationResult } from "express-validator";
 import { protect, supervisorOrAdmin, adminOnly } from "../middleware/auth.middleware.js";
 import { createCompany, getAllCompanies, getCompanyById, updateCompany, deleteCompany, } from "./company.controller.js";
-const router = Router();
+const companyRouter = Router();
 const validate = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -19,13 +19,13 @@ const validate = (req, res, next) => {
     }
     next();
 };
-router.use(protect);
+companyRouter.use(protect);
 // Admin: create
-router.post("/", adminOnly, [body("companyName").trim().notEmpty().withMessage("Company name is required")], validate, createCompany);
+companyRouter.post("/", adminOnly, [body("companyName").trim().notEmpty().withMessage("Company name is required")], validate, createCompany);
 // Supervisor / Admin: read
-router.get("/", supervisorOrAdmin, getAllCompanies);
-router.get("/:id", supervisorOrAdmin, getCompanyById);
+companyRouter.get("/", supervisorOrAdmin, getAllCompanies);
+companyRouter.get("/:id", supervisorOrAdmin, getCompanyById);
 // Admin: update / delete
-router.patch("/:id", adminOnly, updateCompany);
-router.delete("/:id", adminOnly, deleteCompany);
-export default router;
+companyRouter.patch("/:id", adminOnly, updateCompany);
+companyRouter.delete("/:id", adminOnly, deleteCompany);
+export default companyRouter;

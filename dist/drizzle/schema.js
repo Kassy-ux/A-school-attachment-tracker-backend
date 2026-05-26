@@ -51,6 +51,7 @@ export const students = pgTable("students", {
     }),
     attachmentStartDate: date("attachment_start_date"),
     attachmentEndDate: date("attachment_end_date"),
+    supervisorId: uuid("supervisor_id").references(() => users.id),
     createdAt: timestamp("created_at").defaultNow(),
 });
 // ======================================================
@@ -98,8 +99,8 @@ export const attachments = pgTable("attachments", {
     companyId: uuid("company_id")
         .references(() => companies.id, {
         onDelete: "cascade",
-    })
-        .notNull(),
+    }),
+    supervisorId: uuid("supervisor_id").references(() => users.id),
     assignedBy: uuid("assigned_by").references(() => users.id),
     startDate: date("start_date").notNull(),
     endDate: date("end_date").notNull(),
@@ -237,6 +238,10 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
         fields: [students.userId],
         references: [users.id],
     }),
+    supervisor: one(users, {
+        fields: [students.supervisorId],
+        references: [users.id],
+    }),
     attachments: many(attachments),
     dailyLogs: many(dailyLogs),
     attendance: many(attendance),
@@ -257,6 +262,10 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
     company: one(companies, {
         fields: [attachments.companyId],
         references: [companies.id],
+    }),
+    supervisor: one(users, {
+        fields: [attachments.supervisorId],
+        references: [users.id],
     }),
     assignedUser: one(users, {
         fields: [attachments.assignedBy],

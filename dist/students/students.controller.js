@@ -3,7 +3,7 @@ import { getAllStudentsService, getStudentByIdService, getMyStudentProfileServic
 export const getAllStudents = async (req, res) => {
     try {
         const { page, limit, search } = req.query;
-        const result = await getAllStudentsService(page, limit, search);
+        const result = await getAllStudentsService(page, limit, search, req.user.role === "supervisor" ? req.user.userId : undefined);
         res.json({ success: true, message: "Students retrieved.", ...result });
     }
     catch (err) {
@@ -24,7 +24,7 @@ export const getMyProfile = async (req, res) => {
 export const getStudentById = async (req, res) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        const data = await getStudentByIdService(id);
+        const data = await getStudentByIdService(id, req.user.role === "supervisor" ? req.user.userId : undefined);
         res.json({ success: true, message: "Student retrieved.", data });
     }
     catch (err) {

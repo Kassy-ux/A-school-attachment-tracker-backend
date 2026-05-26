@@ -13,7 +13,12 @@ import {
 export const getAllStudents = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { page, limit, search } = req.query as Record<string, string>;
-    const result = await getAllStudentsService(page, limit, search);
+    const result = await getAllStudentsService(
+      page,
+      limit,
+      search,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: "Students retrieved.", ...result });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });
@@ -34,7 +39,10 @@ export const getMyProfile = async (req: AuthRequest, res: Response): Promise<voi
 export const getStudentById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const data = await getStudentByIdService(id);
+    const data = await getStudentByIdService(
+      id,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: "Student retrieved.", data });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });

@@ -7,10 +7,10 @@ dailyRouter.use(protect);
 dailyRouter.post("/", studentOnly, createLog);
 dailyRouter.get("/", studentOnly, getMyLogs);
 dailyRouter.get("/stats", studentOnly, getLogStats);
+// ---- Supervisor / Admin routes ----
+dailyRouter.get("/student/:studentId", supervisorOrAdmin, getStudentLogs);
 dailyRouter.get("/:id", getLogById); // both student and supervisor can view
 dailyRouter.patch("/:id", studentOnly, updateLog);
 dailyRouter.delete("/:id", studentOnly, deleteLog);
-// ---- Supervisor / Admin routes ----
-dailyRouter.get("/student/:studentId", supervisorOrAdmin, getStudentLogs);
 dailyRouter.patch("/:id/review", supervisorOrAdmin, reviewLog);
 export default dailyRouter;

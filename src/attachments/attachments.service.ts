@@ -1,8 +1,12 @@
 
 import { eq, and, count } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import  db  from "../drizzle/db.js";
 import { attachments, students, companies, users } from "../drizzle/schema.js";
 import { parsePagination, buildPagination } from "../common/types.js";
+
+const studentUsers = alias(users, "student_users");
+const supervisorUsers = alias(users, "supervisor_users");
 
 // ============================================================
 // DTOs
@@ -10,13 +14,14 @@ import { parsePagination, buildPagination } from "../common/types.js";
 
 export interface AssignAttachmentDto {
   studentId: string;
-  companyId: string;
+  supervisorId: string;
+  companyId?: string;
   startDate: string;
   endDate: string;
 }
 
 // ============================================================
-// ASSIGN student to company  (admin / supervisor)
+// ASSIGN supervisor to student  (admin)
 // ============================================================
 export const assignAttachmentService = async (
   assignedBy: string,
@@ -33,15 +38,20 @@ export const assignAttachmentService = async (
     throw { statusCode: 404, message: "Student not found." };
   }
 
-  // Check company exists
-  const companyExists = await db
-    .select({ id: companies.id })
-    .from(companies)
-    .where(eq(companies.id, dto.companyId))
+  // Check supervisor exists
+  const supervisorExists = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      and(
+        eq(users.id, dto.supervisorId),
+        eq(users.role, "supervisor")
+      )
+    )
     .limit(1);
 
-  if (companyExists.length === 0) {
-    throw { statusCode: 404, message: "Company not found." };
+  if (supervisorExists.length === 0) {
+    throw { statusCode: 404, message: "Supervisor not found." };
   }
 
   // Check if student already has an ongoing attachment
@@ -57,10 +67,28 @@ export const assignAttachmentService = async (
     .limit(1);
 
   if (ongoing.length > 0) {
-    throw {
-      statusCode: 409,
-      message: "Student already has an ongoing attachment. End it first.",
-    };
+    const [attachment] = await db
+      .update(attachments)
+      .set({
+        supervisorId: dto.supervisorId,
+        assignedBy,
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+        ...(dto.companyId !== undefined && { companyId: dto.companyId }),
+      })
+      .where(eq(attachments.id, ongoing[0].id))
+      .returning();
+
+    await db
+      .update(students)
+      .set({
+        attachmentStartDate: dto.startDate,
+        attachmentEndDate: dto.endDate,
+        supervisorId: dto.supervisorId,
+      })
+      .where(eq(students.id, dto.studentId));
+
+    return attachment;
   }
 
   // Create the attachment
@@ -68,7 +96,8 @@ export const assignAttachmentService = async (
     .insert(attachments)
     .values({
       studentId:  dto.studentId,
-      companyId:  dto.companyId,
+      supervisorId: dto.supervisorId,
+      ...(dto.companyId !== undefined && { companyId: dto.companyId }),
       assignedBy: assignedBy,
       startDate:  dto.startDate,
       endDate:    dto.endDate,
@@ -82,6 +111,7 @@ export const assignAttachmentService = async (
     .set({
       attachmentStartDate: dto.startDate,
       attachmentEndDate:   dto.endDate,
+      supervisorId: dto.supervisorId,
     })
     .where(eq(students.id, dto.studentId));
 
@@ -93,9 +123,11 @@ export const assignAttachmentService = async (
 // ============================================================
 export const getAllAttachmentsService = async (
   rawPage?: string,
-  rawLimit?: string
+  rawLimit?: string,
+  supervisorId?: string
 ) => {
   const { page, limit, offset } = parsePagination(rawPage, rawLimit);
+  const whereClause = supervisorId ? eq(attachments.supervisorId, supervisorId) : undefined;
 
   const rows = await db
     .select({
@@ -106,10 +138,13 @@ export const getAllAttachmentsService = async (
       createdAt:      attachments.createdAt,
       // Student info
       studentId:      students.id,
-      studentName:    users.fullName,
-      studentEmail:   users.email,
+      studentName:    studentUsers.fullName,
+      studentEmail:   studentUsers.email,
       regNumber:      students.registrationNumber,
       course:         students.course,
+      supervisorId:   supervisorUsers.id,
+      supervisorName: supervisorUsers.fullName,
+      supervisorEmail: supervisorUsers.email,
       // Company info
       companyId:      companies.id,
       companyName:    companies.companyName,
@@ -118,14 +153,17 @@ export const getAllAttachmentsService = async (
     })
     .from(attachments)
     .innerJoin(students,  eq(students.id,  attachments.studentId))
-    .innerJoin(users,     eq(users.id,     students.userId))
-    .innerJoin(companies, eq(companies.id, attachments.companyId))
+    .innerJoin(studentUsers, eq(studentUsers.id, students.userId))
+    .leftJoin(supervisorUsers, eq(supervisorUsers.id, attachments.supervisorId))
+    .leftJoin(companies, eq(companies.id, attachments.companyId))
+    .where(whereClause)
     .limit(limit)
     .offset(offset);
 
   const [totalRow] = await db
     .select({ total: count() })
-    .from(attachments);
+    .from(attachments)
+    .where(whereClause);
 
   return {
     data: rows,
@@ -136,7 +174,7 @@ export const getAllAttachmentsService = async (
 // ============================================================
 // GET single attachment by id
 // ============================================================
-export const getAttachmentByIdService = async (attachmentId: string) => {
+export const getAttachmentByIdService = async (attachmentId: string, supervisorId?: string) => {
   const result = await db
     .select({
       attachmentId:    attachments.id,
@@ -145,24 +183,28 @@ export const getAttachmentByIdService = async (attachmentId: string) => {
       endDate:         attachments.endDate,
       createdAt:       attachments.createdAt,
       studentId:       students.id,
-      studentName:     users.fullName,
-      studentEmail:    users.email,
+      studentName:     studentUsers.fullName,
+      studentEmail:    studentUsers.email,
       regNumber:       students.registrationNumber,
       course:          students.course,
       yearOfStudy:     students.yearOfStudy,
+      supervisorId:    supervisorUsers.id,
+      supervisorName:  supervisorUsers.fullName,
+      supervisorEmail: supervisorUsers.email,
       companyId:       companies.id,
       companyName:     companies.companyName,
       companyCity:     companies.city,
       companyCountry:  companies.country,
       companyIndustry: companies.industry,
-      supervisorName:  companies.supervisorName,
-      supervisorEmail: companies.supervisorEmail,
+      companySupervisorName:  companies.supervisorName,
+      companySupervisorEmail: companies.supervisorEmail,
     })
     .from(attachments)
     .innerJoin(students,  eq(students.id,  attachments.studentId))
-    .innerJoin(users,     eq(users.id,     students.userId))
-    .innerJoin(companies, eq(companies.id, attachments.companyId))
-    .where(eq(attachments.id, attachmentId))
+    .innerJoin(studentUsers, eq(studentUsers.id, students.userId))
+    .leftJoin(supervisorUsers, eq(supervisorUsers.id, attachments.supervisorId))
+    .leftJoin(companies, eq(companies.id, attachments.companyId))
+    .where(and(eq(attachments.id, attachmentId), ...(supervisorId ? [eq(attachments.supervisorId, supervisorId)] : [])))
     .limit(1);
 
   if (result.length === 0) {
@@ -182,6 +224,9 @@ export const getMyAttachmentService = async (studentId: string) => {
       status:          attachments.status,
       startDate:       attachments.startDate,
       endDate:         attachments.endDate,
+      supervisorId:    supervisorUsers.id,
+      supervisorName:  supervisorUsers.fullName,
+      supervisorEmail: supervisorUsers.email,
       companyId:       companies.id,
       companyName:     companies.companyName,
       industry:        companies.industry,
@@ -190,11 +235,12 @@ export const getMyAttachmentService = async (studentId: string) => {
       country:         companies.country,
       companyEmail:    companies.email,
       companyPhone:    companies.phoneNumber,
-      supervisorName:  companies.supervisorName,
-      supervisorEmail: companies.supervisorEmail,
+      companySupervisorName:  companies.supervisorName,
+      companySupervisorEmail: companies.supervisorEmail,
     })
     .from(attachments)
-    .innerJoin(companies, eq(companies.id, attachments.companyId))
+    .leftJoin(supervisorUsers, eq(supervisorUsers.id, attachments.supervisorId))
+    .leftJoin(companies, eq(companies.id, attachments.companyId))
     .where(
       and(
         eq(attachments.studentId, studentId),

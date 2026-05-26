@@ -2,6 +2,7 @@
 import { Router } from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { protect, studentOnly, supervisorOrAdmin } from "../middleware/auth.middleware.js";
 import {
   uploadFile,
@@ -13,9 +14,12 @@ import {
 
 // ---- Multer config: local disk storage ----
 // In production: replace diskStorage with Cloudinary multer storage
+const uploadDir = path.join(process.cwd(), "uploads");
+fs.mkdirSync(uploadDir, { recursive: true });
+
 const storage = multer.diskStorage({
   destination: (_req: Express.Request, _file: Express.Multer.File, cb: (error: Error | null, destination?: string) => void) => {
-    cb(null, path.join(process.cwd(), "uploads"));
+    cb(null, uploadDir);
   },
   filename: (_req: Express.Request, file: Express.Multer.File, cb: (error: Error | null, filename?: string) => void) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;

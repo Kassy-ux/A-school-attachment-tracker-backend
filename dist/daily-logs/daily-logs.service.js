@@ -1,6 +1,6 @@
 import { eq, and, desc, count, sql } from "drizzle-orm";
 import db from "../drizzle/db.js";
-import { dailyLogs } from "../drizzle/schema.js";
+import { dailyLogs, students } from "../drizzle/schema.js";
 import { parsePagination, buildPagination } from "../common/types.js";
 export const createLogService = async (studentId, dto) => {
     // One log per day per student
@@ -49,14 +49,21 @@ export const getMyLogsService = async (studentId, rawPage, rawLimit) => {
 // ============================================================
 // GET LOG BY ID
 // ============================================================
-export const getLogByIdService = async (logId, studentId) => {
-    const whereClause = studentId
-        ? and(eq(dailyLogs.id, logId), eq(dailyLogs.studentId, studentId))
-        : eq(dailyLogs.id, logId);
-    const result = await db.select().from(dailyLogs).where(whereClause).limit(1);
+export const getLogByIdService = async (logId, studentId, supervisorId) => {
+    const clauses = [
+        eq(dailyLogs.id, logId),
+        ...(studentId ? [eq(dailyLogs.studentId, studentId)] : []),
+        ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : []),
+    ];
+    const result = await db
+        .select()
+        .from(dailyLogs)
+        .innerJoin(students, eq(students.id, dailyLogs.studentId))
+        .where(and(...clauses))
+        .limit(1);
     if (result.length === 0)
         throw { statusCode: 404, message: "Log not found." };
-    return result[0];
+    return result[0].daily_logs;
 };
 export const updateLogService = async (logId, studentId, dto) => {
     const existing = await db
@@ -98,29 +105,36 @@ export const deleteLogService = async (logId, studentId) => {
 // ============================================================
 // SUPERVISOR: GET a student's logs
 // ============================================================
-export const getStudentLogsService = async (studentId, rawPage, rawLimit) => {
+export const getStudentLogsService = async (studentId, rawPage, rawLimit, supervisorId) => {
     const { page, limit, offset } = parsePagination(rawPage, rawLimit);
+    const clauses = [
+        eq(dailyLogs.studentId, studentId),
+        ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : []),
+    ];
     const rows = await db
         .select()
         .from(dailyLogs)
-        .where(eq(dailyLogs.studentId, studentId))
+        .innerJoin(students, eq(students.id, dailyLogs.studentId))
+        .where(and(...clauses))
         .orderBy(desc(dailyLogs.logDate))
         .limit(limit)
         .offset(offset);
     const [totalRow] = await db
         .select({ total: count() })
         .from(dailyLogs)
-        .where(eq(dailyLogs.studentId, studentId));
+        .innerJoin(students, eq(students.id, dailyLogs.studentId))
+        .where(and(...clauses));
     return {
-        data: rows,
+        data: rows.map((row) => row.daily_logs),
         pagination: buildPagination(Number(totalRow.total), page, limit),
     };
 };
-export const reviewLogService = async (logId, dto) => {
+export const reviewLogService = async (logId, dto, supervisorId) => {
     const result = await db
         .select({ id: dailyLogs.id })
         .from(dailyLogs)
-        .where(eq(dailyLogs.id, logId))
+        .innerJoin(students, eq(students.id, dailyLogs.studentId))
+        .where(and(eq(dailyLogs.id, logId), ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : [])))
         .limit(1);
     if (result.length === 0)
         throw { statusCode: 404, message: "Log not found." };

@@ -1,4 +1,5 @@
 import express from 'express';
+import path from "path";
 import cors from "cors";
 import helmet from "helmet";
 // Routes
@@ -8,6 +9,13 @@ import { errorMiddleware, notFoundMiddleware, } from "./middleware/error.middlew
 import studentRoutes from './students/student.route.js';
 import dailyRouter from './daily-logs/daily-logs.route.js';
 import attendancerouter from './attendance/attendance.route.js';
+import FileRouter from './files/files.route.js';
+import EvaluationRouter from './evaluation/evaluation.route.js';
+import companyRouter from './company/company.route.js';
+import attachmentRouter from './attachments/attachments.route.js';
+import notificationRouter from './notifications/notifications.route.js';
+import reportRouter from './reports/reports.route.js';
+import adminRouter from './admin/admin.route.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 //Start server
@@ -18,6 +26,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 //health check
 app.get("/", (_req, res) => {
     res.json({
@@ -32,6 +41,14 @@ app.use("/api/auth", authRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/daily-logs", dailyRouter);
 app.use("/api/attendance", attendancerouter);
+app.use("/api/evaluations", EvaluationRouter);
+app.use("/api/attachments", attachmentRouter);
+app.use("/api/notifications", notificationRouter);
+app.use("/api/reports", reportRouter);
+app.use("/api/company", companyRouter);
+app.use("/api/files", FileRouter);
+app.use("/api/admin", adminRouter);
+app.use("/api/files", FileRouter);
 //error handling
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);

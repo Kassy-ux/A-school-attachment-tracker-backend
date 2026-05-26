@@ -48,7 +48,11 @@ export const getLogStats = async (req: AuthRequest, res: Response): Promise<void
 export const getLogById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const isStudent = req.user!.role === "student";
-    const data = await getLogByIdService(req.params.id as string, isStudent ? req.user!.studentId : undefined);
+    const data = await getLogByIdService(
+      req.params.id as string,
+      isStudent ? req.user!.studentId : undefined,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: "Log retrieved.", data });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });
@@ -79,7 +83,12 @@ export const deleteLog = async (req: AuthRequest, res: Response): Promise<void> 
 export const getStudentLogs = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { page, limit } = req.query as Record<string, string>;
-    const result = await getStudentLogsService(req.params.studentId as string, page, limit);
+    const result = await getStudentLogsService(
+      req.params.studentId as string,
+      page,
+      limit,
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: "Student logs retrieved.", ...result });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });
@@ -94,7 +103,11 @@ export const reviewLog = async (req: AuthRequest, res: Response): Promise<void> 
       res.status(400).json({ success: false, message: "isApproved must be true or false." });
       return;
     }
-    const data = await reviewLogService(req.params.id as string, { isApproved, supervisorComment });
+    const data = await reviewLogService(
+      req.params.id as string,
+      { isApproved, supervisorComment },
+      req.user!.role === "supervisor" ? req.user!.userId : undefined
+    );
     res.json({ success: true, message: `Log ${isApproved ? "approved" : "rejected"}.`, data });
   } catch (err: any) {
     res.status(err.statusCode || 500).json({ success: false, message: err.message });

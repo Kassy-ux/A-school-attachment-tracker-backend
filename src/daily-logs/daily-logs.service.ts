@@ -74,15 +74,22 @@ export const getMyLogsService = async (
 // ============================================================
 // GET LOG BY ID
 // ============================================================
-export const getLogByIdService = async (logId: string, studentId?: string) => {
-  const whereClause = studentId
-    ? and(eq(dailyLogs.id, logId), eq(dailyLogs.studentId, studentId))
-    : eq(dailyLogs.id, logId);
+export const getLogByIdService = async (logId: string, studentId?: string, supervisorId?: string) => {
+  const clauses = [
+    eq(dailyLogs.id, logId),
+    ...(studentId ? [eq(dailyLogs.studentId, studentId)] : []),
+    ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : []),
+  ];
 
-  const result = await db.select().from(dailyLogs).where(whereClause).limit(1);
+  const result = await db
+    .select()
+    .from(dailyLogs)
+    .innerJoin(students, eq(students.id, dailyLogs.studentId))
+    .where(and(...clauses))
+    .limit(1);
 
   if (result.length === 0) throw { statusCode: 404, message: "Log not found." };
-  return result[0];
+  return result[0].daily_logs;
 };
 
 // ============================================================
@@ -145,14 +152,20 @@ export const deleteLogService = async (logId: string, studentId: string) => {
 export const getStudentLogsService = async (
   studentId: string,
   rawPage?: string,
-  rawLimit?: string
+  rawLimit?: string,
+  supervisorId?: string
 ) => {
   const { page, limit, offset } = parsePagination(rawPage, rawLimit);
+  const clauses = [
+    eq(dailyLogs.studentId, studentId),
+    ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : []),
+  ];
 
   const rows = await db
     .select()
     .from(dailyLogs)
-    .where(eq(dailyLogs.studentId, studentId))
+    .innerJoin(students, eq(students.id, dailyLogs.studentId))
+    .where(and(...clauses))
     .orderBy(desc(dailyLogs.logDate))
     .limit(limit)
     .offset(offset);
@@ -160,10 +173,11 @@ export const getStudentLogsService = async (
   const [totalRow] = await db
     .select({ total: count() })
     .from(dailyLogs)
-    .where(eq(dailyLogs.studentId, studentId));
+    .innerJoin(students, eq(students.id, dailyLogs.studentId))
+    .where(and(...clauses));
 
   return {
-    data: rows,
+    data: rows.map((row) => row.daily_logs),
     pagination: buildPagination(Number(totalRow.total), page, limit),
   };
 };
@@ -176,11 +190,12 @@ export interface ReviewLogDto {
   supervisorComment?: string;
 }
 
-export const reviewLogService = async (logId: string, dto: ReviewLogDto) => {
+export const reviewLogService = async (logId: string, dto: ReviewLogDto, supervisorId?: string) => {
   const result = await db
     .select({ id: dailyLogs.id })
     .from(dailyLogs)
-    .where(eq(dailyLogs.id, logId))
+    .innerJoin(students, eq(students.id, dailyLogs.studentId))
+    .where(and(eq(dailyLogs.id, logId), ...(supervisorId ? [eq(students.supervisorId, supervisorId)] : [])))
     .limit(1);
 
   if (result.length === 0) throw { statusCode: 404, message: "Log not found." };

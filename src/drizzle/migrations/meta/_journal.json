@@ -8,6 +8,13 @@
       "when": 1778678534792,
       "tag": "0000_tricky_pandemic",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779776913816,
+      "tag": "0001_add_supervisor_assignments",
+      "breakpoints": true
     }
   ]
 }
